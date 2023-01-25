@@ -1,0 +1,47 @@
+version: '3.9'
+
+volumes:
+  pgdata:
+
+services:
+  postgres:
+    image: postgres:alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    expose:
+      - 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  hasura:
+    image: hasura/graphql-engine:v2.17.0
+    environment:
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+      PG_DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+      HASURA_GRAPHQL_ENABLE_CONSOLE: 'true'
+      HASURA_GRAPHQL_DEV_MODE: 'true'
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+    ports:
+      - 8080:8080
+    depends_on:
+      - postgres
+
+  supertokens:
+    image: registry.supertokens.io/supertokens/supertokens-postgresql:4.3
+    expose:
+      - 3567
+
+  auth:
+    image: ghcr.io/lab-ops/auth:latest
+    ports:
+      - 3000:3000
+    environment:
+      SUPERTOKENS_VERIFY_EMAIL: 'false'
+      SUPERTOKENS_CONNECTION_URI: http://supertokens:3567
+      SUPERTOKENS_API_DOMAIN: http://localhost:3000
+      SUPERTOKENS_WEBSITE_DOMAIN: https://localhost:5173
+      SUPERTOKENS_DASHBOARD_API_KEY: password
+      ENABLE_CORS_REFLECTION: 'true'
